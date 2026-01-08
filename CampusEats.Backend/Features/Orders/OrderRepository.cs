@@ -63,6 +63,11 @@ public class OrderRepository : IOrderRepository
         throw new NotImplementedException();
     }
 
+    public Task<int> GetTodayOrdersCountAsync(CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<Order?> GetBasicOrderAsync(int orderId, CancellationToken ct)
     {
         throw new NotImplementedException();

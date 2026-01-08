@@ -1,0 +1,214 @@
+﻿@page "/kitchen_staff/menu"
+@layout MainLayout
+@using CampusEats.Frontend.Features.Menu.Models
+@using CampusEats.Frontend.Features.Menu.Services
+@using CampusEats.Frontend.Services.Auth
+
+@inject MenuApi MenuApi
+@inject AuthStateService Auth
+@inject NavigationManager Nav
+
+<div class="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen">
+
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">🍽 Kitchen Menu Management</h1>
+            <p class="text-base text-gray-600">Edit menu items, update stock, or delete entries.</p>
+        </div>
+
+        @if (Auth.Role == "kitchen_staff")
+        {
+            <button class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors flex items-center gap-2" @onclick="GoToCreate">
+                <span>➕</span>
+                <span>Add New Menu Item</span>
+            </button>
+        }
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="flex flex-col justify-center items-center min-h-96">
+            <div class="w-12 h-12 border-4 border-gray-300 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+            <p class="text-gray-600 font-medium">Loading menu...</p>
+        </div>
+    }
+    else if (Items == null || Items.Count == 0)
+    {
+        <div class="bg-white rounded-2xl p-16 text-center border border-gray-200">
+            <div class="text-6xl mb-4">🍽️</div>
+            <h3 class="text-2xl font-semibold text-gray-900 mb-2">No items found</h3>
+            <p class="text-base text-gray-600">Add new items to populate today's menu.</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            @foreach (var item in Items)
+            {
+                <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-gray-300 transition-all">
+
+                    <div class="p-6 border-b border-gray-100">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-lg font-bold text-gray-900 flex-1">@item.Name</h3>
+                            <span class="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-lg ml-2">
+                                @item.Calories cal
+                            </span>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var label in item.Labels)
+                            {
+                                <span class="text-xs font-semibold px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg">
+                                    @label
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="aspect-video bg-gray-100 overflow-hidden">
+                        <img src="@GetPictureSrc(item)" 
+                             alt="@item.Name" 
+                             class="w-full h-full object-cover"
+                             onerror="this.onerror=null;this.src='/images/default-menu-item.svg'" />
+                    </div>
+
+                    <div class="p-6">
+                        <div class="text-2xl font-bold text-gray-900 mb-4">@item.Price RON</div>
+
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-sm font-medium @(item.CurrentStock <= 0 ? "text-red-600" : "text-gray-700")">
+                                @(item.CurrentStock <= 0 ? "Out of stock" : $"{item.CurrentStock} available")
+                            </span>
+
+                            @if (Auth.Role == "kitchen_staff")
+                            {
+                                <input type="number"
+                                       class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                       min="0"
+                                       @bind="item.CurrentStock"
+                                       @bind:event="oninput"
+                                       @onchange="() => UpdateStock(item)" />
+                            }
+                        </div>
+                    </div>
+
+                    @if (Auth.Role == "kitchen_staff")
+                    {
+                        <div class="p-6 pt-0 flex gap-3">
+                            <button class="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2" 
+                                    @onclick="() => Edit(item.MenuItemId)">
+                                <span>✏️</span>
+                                <span>Edit</span>
+                            </button>
+                            <button class="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2" 
+                                    @onclick="() => PromptDelete(item.MenuItemId, item.Name)">
+                                <span>🗑</span>
+                                <span>Delete</span>
+                            </button>
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </div>
+    }
+</div>
+
+@if (IsDeleteModalOpen)
+{
+    <div class="fixed inset-0 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirm Deletion</h3>
+            <p class="text-sm text-gray-700 mb-4">
+                Are you sure you want to delete the menu item "<strong>@ItemToDeleteName</strong>"? This action cannot be undone.
+            </p>
+            <div class="flex justify-end gap-2">
+                <button class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition-colors flex-1" @onclick="CancelDelete">
+                    Cancel
+                </button>
+                <button class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex-1" @onclick="ConfirmDelete">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<MenuItemDto>? Items;
+    private bool IsLoading = true;
+    
+    private int? ItemToDeleteId;
+    private string? ItemToDeleteName;
+    private bool IsDeleteModalOpen = false;
+
+    private string GetPictureSrc(MenuItemDto item)
+        => string.IsNullOrWhiteSpace(item.PictureLink) ? "/images/default-menu-item.svg" : item.PictureLink!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Auth.Role != "kitchen_staff")
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        await LoadMenu();
+    }
+
+    private async Task LoadMenu()
+    {
+        IsLoading = true;
+        Items = await MenuApi.GetMenuAsync(onlyAvailable: true);
+        IsLoading = false;
+    }
+
+    private void GoToCreate()
+    {
+        Nav.NavigateTo("/kitchen_staff/create");
+    }
+
+    private void Edit(int id)
+    {
+        Nav.NavigateTo($"/kitchen_staff/edit/{id}");
+    }
+    
+    private void PromptDelete(int id, string name)
+    {
+        ItemToDeleteId = id;
+        ItemToDeleteName = name;
+        IsDeleteModalOpen = true;
+    }
+
+    private void CancelDelete()
+    {
+        ItemToDeleteId = null;
+        ItemToDeleteName = null;
+        IsDeleteModalOpen = false;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (ItemToDeleteId == null)
+            return;
+
+        await MenuApi.DeleteMenuItemAsync(ItemToDeleteId.Value);
+        Items = Items!.Where(i => i.MenuItemId != ItemToDeleteId.Value).ToList();
+        CancelDelete();
+        StateHasChanged();
+    }
+    
+    private async Task UpdateStock(MenuItemDto item)
+    {
+        await MenuApi.UpdateStockAsync(item.MenuItemId, item.CurrentStock);
+    }
+    
+    private string GetStockText(MenuItemDto item)
+    {
+        return item.CurrentStock <= 0
+            ? "Out of stock"
+            : $"{item.CurrentStock} available";
+    }
+}

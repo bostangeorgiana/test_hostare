@@ -1,0 +1,746 @@
+﻿@page "/admin/dashboard"
+@layout EmptyLayout
+@using CampusEats.Frontend.Features.Admin.Components
+@using CampusEats.Frontend.Features.Admin.Models
+@using CampusEats.Frontend.Features.Admin.Services
+@using CampusEats.Frontend.Services
+@using CampusEats.Frontend.Services.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AdminApi Api
+@inject NavigationManager Navigation
+@inject ITokenService TokenService
+@inject IAuthApi AuthApi
+@inject AuthenticationStateProvider AuthStateProvider
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    
+    body, * {
+        font-family: 'Poppins', sans-serif;
+    }
+</style>
+
+@if (!isAuthenticated)
+{
+    <div class="flex items-center justify-center min-h-screen bg-gray-50">
+        <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
+        </div>
+    </div>
+}
+else if (!isAdmin)
+{
+    <div class="flex items-center justify-center min-h-screen bg-gray-50">
+        <div class="text-center bg-white rounded-lg shadow-lg p-8 max-w-md">
+            <svg class="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+            <p class="text-gray-600 mb-6">You don't have permission to access the admin dashboard.</p>
+            <button class="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition-colors"
+                    @onclick="HandleLogout">
+                Go to Login
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="flex min-h-screen bg-gray-50">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white border-r border-gray-200 flex flex-col">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-gray-900">CampusEats</h1>
+                        <p class="text-xs text-gray-500">Admin Panel</p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="flex-1 p-4">
+                <button class="@GetNavButtonClass(0)" @onclick="() => SetTab(0)">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>Student Requests</span>
+                </button>
+                <button class="@GetNavButtonClass(1)" @onclick="() => SetTab(1)">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span>Admin Management</span>
+                </button>
+                <button class="@GetNavButtonClass(2)" @onclick="() => SetTab(2)">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>Kitchen Staff</span>
+                </button>
+                <button class="@GetNavButtonClass(3)" @onclick="() => SetTab(3)">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span>Active Students</span>
+                </button>
+                <a href="/admin/analytics"
+                   class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors text-sm mb-2 text-gray-600 hover:bg-gray-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 17v-6m4 6V7m4 10V4" />
+                    </svg>
+                    <span>Payment Analytics</span>
+                </a>
+
+
+            </nav>
+
+            <!-- Logout Button -->
+            <div class="p-4 border-t border-gray-200">
+                <button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors text-sm text-red-600 hover:bg-red-50"
+                        @onclick="HandleLogout">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <div class="p-8">
+                <!-- Header -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-900">
+                        @if (activeTab == 0) { <text>Student Requests</text> }
+                        @if (activeTab == 1) { <text>Admin Management</text> }
+                        @if (activeTab == 2) { <text>Kitchen Staff Management</text> }
+                        @if (activeTab == 3) { <text>Active Students</text> }
+                        @if (activeTab == 4) { <text>Payment Analytics</text> }
+
+                    </h2>
+                </div>
+
+                <!-- Content -->
+                @if (activeTab == 0)
+                {
+                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                        <StudentRequestsView 
+                            Requests="@studentRequests"
+                            Approve="ApproveStudent"
+                            Reject="RejectStudent" />
+                    </div>
+                }
+                else if (activeTab == 1)
+                {
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-emerald-600 rounded-lg p-6 text-white">
+                            <div class="flex items-center justify-between mb-4">
+                                <p class="text-emerald-100 text-sm font-medium">Total Admins</p>
+                                <svg class="w-8 h-8 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </div>
+                            <p class="text-4xl font-bold">@admins.Count</p>
+                        </div>
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <p class="text-gray-500 text-sm font-medium">Active Today</p>
+                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <p class="text-4xl font-bold text-gray-900">@admins.Count</p>
+                        </div>
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <p class="text-gray-500 text-sm font-medium">Total Actions</p>
+                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                            <p class="text-4xl font-bold text-gray-900">--</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg border border-gray-200">
+                        <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900">Admin List</h3>
+                            <button class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition-colors"
+                                    @onclick="() => showCreateAdminModal = true">
+                                Add Admin
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <AdminManagementView 
+                                Admins="@admins"
+                                OnDeleteAdmin="DeleteAdmin" />
+                        </div>
+                    </div>
+                }
+                else if (activeTab == 2)
+                {
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-emerald-600 rounded-lg p-6 text-white">
+                            <div class="flex items-center justify-between mb-4">
+                                <p class="text-emerald-100 text-sm font-medium">Total Staff</p>
+                                <svg class="w-8 h-8 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                            <p class="text-4xl font-bold">@staff.Count</p>
+                        </div>
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <p class="text-gray-500 text-sm font-medium">Active Today</p>
+                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <p class="text-4xl font-bold text-gray-900">@staff.Count</p>
+                        </div>
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <p class="text-gray-500 text-sm font-medium">Orders Today</p>
+                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                </svg>
+                            </div>
+                            <p class="text-4xl font-bold text-gray-900">@todayOrdersCount</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg border border-gray-200">
+                        <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900">Staff List</h3>
+                            <button class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition-colors"
+                                    @onclick="() => showCreateStaffModal = true">
+                                Add Kitchen Staff
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <KitchenStaffView 
+                                Staff="@staff"
+                                OnDeleteStaff="DeleteStaff" />
+                        </div>
+                    </div>
+                }
+                else if (activeTab == 3)
+{
+    @if (isLoadingStudents)
+    {
+        <div class="flex items-center justify-center py-12">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
+                <p class="text-gray-600">Loading students...</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- ... stats cards ... -->
+        </div>
+
+        <!-- Students Table -->
+        <div class="bg-white rounded-lg border border-gray-200">
+            <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Student List</h3>
+                <div class="flex items-center gap-3">
+                    <select class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            @onchange="OnStudentsPageSizeChange">
+                        <option value="10" selected="@(studentsPageSize == 10)">10 per page</option>
+                        <option value="25" selected="@(studentsPageSize == 25)">25 per page</option>
+                        <option value="50" selected="@(studentsPageSize == 50)">50 per page</option>
+                    </select>
+                </div>
+            </div>
+
+            @if (activeStudents.Count == 0)
+            {
+                <div class="p-12 text-center">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <p class="text-gray-500 text-lg font-medium">No students found</p>
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Loyalty Points</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach (var student in activeStudents)
+                            {
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-medium text-gray-900">@student.UserId</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                                                <span class="text-emerald-700 font-semibold text-sm">
+                                                    @student.FirstName.Substring(0, 1)@student.LastName.Substring(0, 1)
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900">@student.FirstName @student.LastName</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-gray-600">@student.Email</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <span class="text-sm font-semibold text-gray-900">@student.LoyaltyPoints</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-3 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">
+                                            @student.Role
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="p-6 border-t border-gray-200 flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        Showing <span class="font-medium">@((studentsPage - 1) * studentsPageSize + 1)</span> to 
+                        <span class="font-medium">@Math.Min(studentsPage * studentsPageSize, studentsTotal)</span> of 
+                        <span class="font-medium">@studentsTotal</span> results
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                @onclick="StudentsPreviousPage"
+                                disabled="@(!studentsHasPreviousPage)">
+                            Previous
+                        </button>
+                        <div class="flex items-center gap-1">
+                            @for (int i = Math.Max(1, studentsPage - 2); i <= Math.Min(studentsTotalPages, studentsPage + 2); i++)
+                            {
+                                var pageNum = i;
+                                <button class="@GetStudentsPageButtonClass(pageNum)"
+                                        @onclick="() => StudentsGoToPage(pageNum)">
+                                    @pageNum
+                                </button>
+                            }
+                        </div>
+                        <button class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                @onclick="StudentsNextPage"
+                                disabled="@(!studentsHasNextPage)">
+                            Next
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <AdminCreateModal 
+        Show="@showCreateAdminModal"
+        OnSubmit="CreateAdmin"
+        OnClose="() => showCreateAdminModal = false" />
+
+    <KitchenStaffCreateModal
+        Show="@showCreateStaffModal"
+        OnSubmit="CreateStaff"
+        OnClose="() => showCreateStaffModal = false" />
+}
+
+@code {
+    int activeTab = 0;
+    bool isAuthenticated = false;
+    bool isAdmin = false;
+    
+    List<StudentRequest> studentRequests = new();
+    List<AdminDto> admins = new();
+    List<KitchenStaffUser> staff = new();
+    int todayOrdersCount = 0;
+    
+    List<Students.GetStudentsAdmin> activeStudents = new();
+    int studentsTotal = 0;
+    int studentsPage = 1;
+    int studentsPageSize = 10;
+    int studentsTotalPages = 0;
+    bool studentsHasNextPage = false;
+    bool studentsHasPreviousPage = false;
+    bool isLoadingStudents = false;
+    
+    bool showCreateAdminModal = false;
+    bool showCreateStaffModal = false;
+    
+    // === PAYMENT ANALYTICS ===
+    AdminApi.PaymentAnalyticsOverview? paymentOverview;
+
+    List<AdminApi.DailyRevenueData> dailyRevenue = new();
+    List<AdminApi.MonthlyRevenueData> monthlyRevenue = new();
+
+    List<AdminApi.PaymentTransaction> transactions = new();
+    int transactionsTotal = 0;
+    int transactionsPage = 1;
+    int transactionsPageSize = 20;
+    bool transactionsHasNext = false;
+    bool transactionsHasPrevious = false;
+
+    bool isLoadingAnalytics = false;
+    string selectedPeriod = "all";
+    
+    async Task LoadPaymentAnalytics()
+    {
+        try
+        {
+            isLoadingAnalytics = true;
+            StateHasChanged();
+
+            paymentOverview = await Api.GetPaymentAnalyticsOverview(selectedPeriod);
+            dailyRevenue = await Api.GetDailyRevenue();
+            monthlyRevenue = await Api.GetMonthlyRevenue();
+
+            var tx = await Api.GetPaymentTransactions(
+                transactionsPage,
+                transactionsPageSize
+            );
+
+            transactions = tx.Items;
+            transactionsTotal = tx.TotalCount;
+            transactionsHasNext = tx.HasNextPage;
+            transactionsHasPrevious = tx.HasPreviousPage;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await HandleLogout();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Analytics error: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingAnalytics = false;
+            StateHasChanged();
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+        
+        if (isAuthenticated && isAdmin)
+        {
+            await LoadAll();
+        }
+    }
+
+    async Task CheckAuthentication()
+    {
+        try
+        {
+            // Verifică dacă există token
+            var token = await TokenService.GetTokenAsync();
+
+            if (string.IsNullOrEmpty(token))
+            {
+                Console.WriteLine("❌ No token found, redirecting to login");
+                Navigation.NavigateTo("/auth/login", forceLoad: true);
+                return;
+            }
+
+            // Verifică rolul utilizatorului din claims
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                isAuthenticated = true;
+                
+                // Verifică dacă utilizatorul are rolul de admin
+                var roleClaim = user.FindFirst(ClaimTypes.Role);
+                isAdmin = roleClaim?.Value == "admin";
+
+                if (!isAdmin)
+                {
+                    Console.WriteLine("❌ User is not an admin");
+                    return;
+                }
+
+                Console.WriteLine("✅ Admin authenticated successfully");
+            }
+            else
+            {
+                Console.WriteLine("❌ User is not authenticated");
+                Navigation.NavigateTo("/auth/login", forceLoad: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Authentication check failed: {ex.Message}");
+            Navigation.NavigateTo("/auth/login", forceLoad: true);
+        }
+    }
+
+    string GetNavButtonClass(int i)
+    {
+        var baseClasses = "w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors text-sm mb-2 text-left";
+        return i == activeTab
+            ? $"{baseClasses} bg-emerald-600 text-white"
+            : $"{baseClasses} text-gray-600 hover:bg-gray-100";
+    }
+
+    async Task SetTab(int i)
+    {
+        activeTab = i;
+
+        if (i == 2 && todayOrdersCount == 0)
+        {
+            todayOrdersCount = await Api.GetTodayOrdersCount();
+        }
+
+        if (i == 3 && activeStudents.Count == 0)
+            await LoadActiveStudents();
+
+        if (i == 4 && paymentOverview == null)
+            await LoadPaymentAnalytics();
+
+        StateHasChanged();
+    }
+
+
+    async Task LoadAll()
+    {
+        try
+        {
+            studentRequests = await Api.GetStudentRequests();
+            admins = await Api.GetAdmins();
+            staff = await Api.GetKitchenStaff();
+            StateHasChanged();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Console.WriteLine("❌ Unauthorized access, logging out");
+            await HandleLogout();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error loading data: {ex.Message}");
+        }
+    }
+
+    async Task LoadActiveStudents()
+    {
+        try
+        {
+            isLoadingStudents = true;
+            StateHasChanged();
+
+            var response = await Api.GetStudentsList(studentsPage, studentsPageSize);
+            
+            activeStudents = response.Items;
+            studentsTotal = response.TotalCount;
+            studentsTotalPages = response.TotalPages;
+            studentsHasNextPage = response.HasNextPage;
+            studentsHasPreviousPage = response.HasPreviousPage;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await HandleLogout();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error loading students: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingStudents = false;
+            StateHasChanged();
+        }
+    }
+
+    async Task OnStudentsPageSizeChange(ChangeEventArgs e)
+    {
+        studentsPageSize = int.Parse(e.Value?.ToString() ?? "10");
+        studentsPage = 1;
+        await LoadActiveStudents();
+    }
+
+    async Task StudentsNextPage()
+    {
+        if (studentsHasNextPage)
+        {
+            studentsPage++;
+            await LoadActiveStudents();
+        }
+    }
+
+    async Task StudentsPreviousPage()
+    {
+        if (studentsHasPreviousPage)
+        {
+            studentsPage--;
+            await LoadActiveStudents();
+        }
+    }
+
+    async Task StudentsGoToPage(int page)
+    {
+        studentsPage = page;
+        await LoadActiveStudents();
+    }
+
+    string GetStudentsPageButtonClass(int page)
+    {
+        return page == studentsPage
+            ? "w-10 h-10 flex items-center justify-center rounded-lg bg-emerald-600 text-white font-medium text-sm"
+            : "w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm transition-colors";
+    }
+    
+    async Task ApproveStudent(int id)
+    {
+        try
+        {
+            await Api.ApproveStudent(id);
+            await LoadAll();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await HandleLogout();
+        }
+    }
+
+    async Task RejectStudent(int id)
+    {
+        try
+        {
+            await Api.RejectStudent(id);
+            await LoadAll();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await HandleLogout();
+        }
+    }
+
+    async Task CreateAdmin(CreateAdminRequest req)
+    {
+        try
+        {
+            var ok = await Api.CreateAdmin(req);
+
+            if (ok)
+            {
+                Console.WriteLine("👑 Admin created successfully!");
+                showCreateAdminModal = false;
+                await LoadAll();
+            }
+            else Console.WriteLine("❌ Failed to create admin!");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await HandleLogout();
+        }
+    }
+
+    async Task DeleteAdmin(int id)
+    {
+        try
+        {
+            await Api.DeleteAdmin(id);
+            await LoadAll();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await HandleLogout();
+        }
+    }
+
+    async Task CreateStaff(CreateKitchenStaffRequest req)
+    {
+        try
+        {
+            var ok = await Api.CreateKitchenStaff(req);
+
+            if (ok)
+            {
+                Console.WriteLine("🍳 Kitchen staff created!");
+                showCreateStaffModal = false;
+                await LoadAll();
+            }
+            else Console.WriteLine("❌ Failed to create staff!");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await HandleLogout();
+        }
+    }
+
+    async Task DeleteStaff(int id)
+    {
+        try
+        {
+            await Api.DeleteKitchenStaff(id);
+            await LoadAll();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await HandleLogout();
+        }
+    }
+
+    async Task HandleLogout()
+    {
+        await TokenService.RemoveTokenAsync();
+        Navigation.NavigateTo("/auth/login", forceLoad: true);
+    }
+
+    // Records for Active Students
+    public record GetStudentsAdmin(
+        int UserId,
+        string FirstName,
+        string LastName,
+        string Email,
+        int LoyaltyPoints,
+        string Role
+    );
+
+    public record GetStudentsAdminResponse(
+        List<GetStudentsAdmin> Items,
+        int TotalCount,
+        int Page,
+        int PageSize,
+        int TotalPages,
+        bool HasNextPage,
+        bool HasPreviousPage
+    );
+}            

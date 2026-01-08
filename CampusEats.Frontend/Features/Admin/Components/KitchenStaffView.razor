@@ -1,0 +1,23 @@
+﻿@using CampusEats.Frontend.Features.Admin.Models
+@using CampusEats.Frontend.Models
+
+<div class="space-y-3">
+    @foreach (var s in Staff)
+    {
+        <div class="p-3 border rounded flex justify-between">
+            <div>
+                <b>@s.Name</b> @s.Email
+            </div>
+            <button class="px-3 py-1 bg-red-600 text-white rounded"
+                    @onclick="() => OnDeleteStaff.InvokeAsync(s.Id)">
+                Delete
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<KitchenStaffUser> Staff { get; set; } = new();
+    [Parameter] public EventCallback OnCreateStaff { get; set; }
+    [Parameter] public EventCallback<int> OnDeleteStaff { get; set; }
+}

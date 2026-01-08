@@ -1,0 +1,72 @@
+﻿@page "/orders"
+@using CampusEats.Frontend.Features.Student.Order.Models
+@using CampusEats.Frontend.Models
+@using CampusEats.Frontend.Services
+@using CampusEats.Frontend.Services.Auth
+@inject OrderApi Api
+@inject NavigationManager Nav
+@inject AuthStateService Auth
+
+<div class="max-w-7xl mx-auto px-6 py-8 bg-gray-50 min-h-screen">
+    <div class="mb-8">
+        <h1 class="text-3xl font-semibold text-gray-900 mb-1">📦 My Orders</h1>
+        <p class="text-gray-600 text-base">Track your order history</p>
+    </div>
+
+    @if (orders == null)
+    {
+        <div class="text-center py-16 text-gray-600">
+            <div class="inline-block w-10 h-10 border-3 border-gray-200 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+            <p>Loading orders...</p>
+        </div>
+    }
+    else if (!orders.Any())
+    {
+        <div class="text-center py-16 bg-white rounded-lg shadow-sm">
+            <span class="text-7xl block mb-4 opacity-40">📦</span>
+            <h3 class="text-2xl font-semibold text-gray-900 mb-2">No orders yet</h3>
+            <p class="text-gray-600 mb-8">When you place orders, they will appear here.</p>
+            <button class="bg-emerald-500 text-white px-8 py-3 rounded-md font-medium hover:bg-emerald-600 transition-colors" @onclick="@(() => Nav.NavigateTo("/student/menu"))">
+                Browse Menu
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            @foreach (var order in orders)
+            {
+                <div class="bg-white rounded-lg p-5 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all border border-transparent hover:border-emerald-500" @onclick="@(() => Nav.NavigateTo($"/orders/{order.OrderId}"))">
+                    <div class="flex justify-between items-start mb-5 pb-4 border-b border-gray-200">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-1">Order #@order.OrderId</h3>
+                            <p class="text-gray-600 text-sm">@order.CreatedAt.ToString("MMM dd, yyyy · HH:mm")</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wide
+                            @(order.Status == "pending" ? "bg-yellow-100 text-yellow-800" :
+                              order.Status == "confirmed" ? "bg-blue-100 text-blue-800" :
+                              order.Status == "ready" ? "bg-emerald-100 text-emerald-800" :
+                              order.Status == "completed" || order.Status == "paid" ? "bg-green-100 text-green-800" :
+                              "bg-red-100 text-red-800")">
+                            @order.Status.ToUpper()
+                        </span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-2xl font-semibold text-emerald-500">@order.TotalAmount RON</span>
+                        <span class="text-emerald-500 font-medium text-sm transition-transform group-hover:translate-x-1">View Details →</span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    List<OrderSummary>? orders;
+
+    protected override async Task OnInitializedAsync()
+    {
+        orders = await Api.GetHistory(Auth.UserId) ?? new();
+    }
+}

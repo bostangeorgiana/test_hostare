@@ -1,0 +1,200 @@
+﻿@using CampusEats.Frontend.Features.Menu.Models
+
+<div class="filters-container">
+    <button class="filter-toggle" @onclick="ToggleOpen">
+        Filters
+        <span class="chevron">@((IsOpen ? "▴" : "▾"))</span>
+    </button>
+
+    @if (IsOpen)
+    {
+        <div class="filters-panel">
+            <div class="filter-row">
+                <label>
+                    <input type="checkbox"
+                           checked="@OnlyAvailable"
+                           @onchange="HandleOnlyAvailable" />
+                    Only Available
+                </label>
+            </div>
+
+            <div class="filter-row">
+                <label>
+                    <input type="checkbox"
+                           checked="@OnlyFavorites"
+                           @onchange="HandleOnlyFavorites" />
+                    Only Favorites
+                </label>
+            </div>
+
+            <div class="filter-section">
+                <label class="filter-title">Labels</label>
+
+                <input class="label-search"
+                       placeholder="Search labels..."
+                       @bind="LabelSearch"
+                       @bind:event="oninput" />
+
+                <div class="label-list">
+                    @foreach (var lbl in FilteredLabels)
+                    {
+                        <label class="label-item">
+                            <input type="checkbox"
+                                   value="@lbl.LabelId"
+                                   checked="@SelectedLabelIds.Contains(lbl.LabelId)"
+                                   @onchange="() => ToggleLabel(lbl.LabelId)" />
+                            @lbl.Name
+                        </label>
+                    }
+
+                    @if (!FilteredLabels.Any())
+                    {
+                        <p class="no-labels">No matching labels...</p>
+                    }
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <label class="filter-title">Price Range</label>
+
+                <div class="price-inputs">
+                    <div>
+                        <small>Min:</small>
+                        <input type="number" class="price-box"
+                               value="@(MinPrice?.ToString() ?? String.Empty)"
+                               @oninput="HandleMinPrice" />
+                    </div>
+                    <div>
+                        <small>Max:</small>
+                        <input type="number" class="price-box"
+                               value="@(MaxPrice?.ToString() ?? String.Empty)"
+                               @oninput="HandleMaxPrice" />
+                    </div>
+                </div>
+
+                <input type="range" min="0" max="1000"
+                       value="@(MinPrice ?? 0)"
+                       @oninput="HandleMinPrice" class="slider" />
+
+                <input type="range" min="0" max="1000"
+                       value="@(MaxPrice ?? 1000)"
+                       @oninput="HandleMaxPrice" class="slider" />
+            </div>
+
+            <div class="filter-section">
+                <label class="filter-title">Sort By</label>
+                <select value="@SortOption" @onchange="HandleSortOption">
+                    <option value="">None</option>
+                    <option value="price-asc">Price: Low → High</option>
+                    <option value="price-desc">Price: High → Low</option>
+                </select>
+            </div>
+
+            <button class="apply-btn" @onclick="ApplyFilters">
+                Apply Filters
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public bool OnlyAvailable { get; set; }
+    [Parameter] public EventCallback<bool> OnlyAvailableChanged { get; set; }
+
+    [Parameter] public bool OnlyFavorites { get; set; }
+    [Parameter] public EventCallback<bool> OnlyFavoritesChanged { get; set; }
+
+    [Parameter] public List<MenuLabelDto> AvailableLabels { get; set; } = new();
+    [Parameter] public List<int> SelectedLabelIds { get; set; } = new();
+    [Parameter] public EventCallback<List<int>> SelectedLabelIdsChanged { get; set; }
+
+    [Parameter] public decimal? MinPrice { get; set; }
+    [Parameter] public EventCallback<decimal?> MinPriceChanged { get; set; }
+
+    [Parameter] public decimal? MaxPrice { get; set; }
+    [Parameter] public EventCallback<decimal?> MaxPriceChanged { get; set; }
+
+    [Parameter] public string SortOption { get; set; } = "";
+    [Parameter] public EventCallback<string> SortOptionChanged { get; set; }
+
+    [Parameter] public EventCallback OnApplyFilters { get; set; }
+    
+    private bool IsOpen = false;
+    private string LabelSearch = "";
+
+    private IEnumerable<MenuLabelDto> FilteredLabels =>
+        string.IsNullOrWhiteSpace(LabelSearch)
+            ? AvailableLabels
+            : AvailableLabels.Where(x =>
+                x.Name.Contains(LabelSearch, StringComparison.OrdinalIgnoreCase));
+
+    private void ToggleOpen() => IsOpen = !IsOpen;
+
+    private async Task HandleOnlyAvailable(ChangeEventArgs e)
+    {
+        bool newVal = e.Value is bool b ? b : e.Value?.ToString() == "on";
+        OnlyAvailable = newVal;
+        await OnlyAvailableChanged.InvokeAsync(newVal);
+    }
+
+    private async Task HandleOnlyFavorites(ChangeEventArgs e)
+    {
+        bool newVal = e.Value is bool b ? b : e.Value?.ToString() == "on";
+        OnlyFavorites = newVal;
+        await OnlyFavoritesChanged.InvokeAsync(newVal);
+    }
+
+    private async Task HandleMinPrice(ChangeEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(e.Value?.ToString()))
+        {
+            MinPrice = null;
+            await MinPriceChanged.InvokeAsync(null);
+            return;
+        }
+
+        if (decimal.TryParse(e.Value?.ToString(), out var v))
+        {
+            MinPrice = v;
+            await MinPriceChanged.InvokeAsync(v);
+        }
+    }
+
+    private async Task HandleMaxPrice(ChangeEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(e.Value?.ToString()))
+        {
+            MaxPrice = null;
+            await MaxPriceChanged.InvokeAsync(null);
+            return;
+        }
+
+        if (decimal.TryParse(e.Value?.ToString(), out var v))
+        {
+            MaxPrice = v;
+            await MaxPriceChanged.InvokeAsync(v);
+        }
+    }
+
+    private async Task HandleSortOption(ChangeEventArgs e)
+    {
+        string newVal = e.Value?.ToString() ?? "";
+        SortOption = newVal;
+        await SortOptionChanged.InvokeAsync(newVal);
+    }
+
+    private async Task ToggleLabel(int labelId)
+    {
+        if (SelectedLabelIds.Contains(labelId))
+            SelectedLabelIds.Remove(labelId);
+        else
+            SelectedLabelIds.Add(labelId);
+
+        await SelectedLabelIdsChanged.InvokeAsync(SelectedLabelIds);
+    }
+
+    private async Task ApplyFilters()
+    {
+        await OnApplyFilters.InvokeAsync();
+    }
+}

@@ -1,0 +1,266 @@
+﻿@page "/kitchen_staff/create"
+@layout MainLayout
+
+@using CampusEats.Frontend.Features.Menu.Models
+@using CampusEats.Frontend.Features.Menu.Services
+@using CampusEats.Frontend.Services.Auth
+
+@inject MenuApi MenuApi
+@inject NavigationManager Nav
+@inject AuthStateService Auth
+
+<div class="max-w-4xl mx-auto p-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Create New Menu Item</h1>
+        <p class="text-gray-500">Add a new dish to the cafeteria menu</p>
+    </div>
+
+    @if (SuccessMessage != null)
+    {
+        <div class="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
+            @SuccessMessage
+        </div>
+    }
+    @if (ErrorMessage != null)
+    {
+        <div class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+            @ErrorMessage
+        </div>
+    }
+
+    <div class="bg-white rounded-xl shadow-sm p-8">
+
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+            <input class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent" 
+                   @bind="Model.Name" 
+                   placeholder="Menu item name" />
+        </div>
+        
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+            <textarea class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent" 
+                      rows="3" 
+                      @bind="Model.Description" 
+                      placeholder="Describe the item"></textarea>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Price (RON)</label>
+                <input type="number" 
+                       step="0.01" 
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent" 
+                       @bind="Model.Price" />
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Calories</label>
+                <input type="number" 
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent" 
+                       @bind="Model.Calories" />
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Stock</label>
+                <input type="number" 
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent" 
+                       @bind="Model.Stock" />
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Picture URL (optional)</label>
+            <input class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent" 
+                   placeholder="https://..." 
+                   @bind="PictureLinkBound" 
+                   @bind:event="oninput" />
+            @if (!string.IsNullOrWhiteSpace(Model.PictureLink))
+            {
+                <div class="mt-3 p-3 bg-gray-50 rounded-lg">
+                    <img src="@Model.PictureLink" alt="Preview" class="max-w-[200px] max-h-[150px] rounded-lg" />
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(PictureLinkError))
+            {
+                <small class="block mt-2 text-sm text-red-600">@PictureLinkError</small>
+            }
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Labels</label>
+            <select multiple 
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent" 
+                    @onchange="OnLabelChange">
+                @foreach (var lbl in AvailableLabels)
+                {
+                    <option value="@lbl.LabelId">@lbl.Name</option>
+                }
+            </select>
+            <small class="block mt-2 text-sm text-gray-500">Hold CTRL to select multiple</small>
+        </div>
+
+        <div class="mb-6 p-6 bg-gray-50 rounded-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">Ingredients</h3>
+                <button class="bg-[#10b981] hover:bg-[#059669] text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all" 
+                        @onclick="AddIngredient">
+                    + Add Ingredient
+                </button>
+            </div>
+
+            @if (Model.Ingredients.Any())
+            {
+                <div class="space-y-3">
+                    @foreach (var ing in Model.Ingredients)
+                    {
+                        <div class="flex gap-3 items-center">
+                            <select class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent" 
+                                    @bind="ing.IngredientId">
+                                <option value="">Select ingredient...</option>
+                                @foreach (var opt in AvailableIngredients)
+                                {
+                                    <option value="@opt.IngredientId">@opt.Name</option>
+                                }
+                            </select>
+
+                            <input class="w-32 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                                   type="number"
+                                   placeholder="Quantity (g)"
+                                   @bind="ing.Quantity" />
+
+                            <button class="px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-semibold text-sm transition-all" 
+                                    @onclick="(() => RemoveIngredient(ing))">
+                                Remove
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-sm text-gray-500">No ingredients added yet.</p>
+            }
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <button class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-all" 
+                    @onclick="GoBack">
+                Cancel
+            </button>
+            <button class="px-6 py-3 bg-[#10b981] hover:bg-[#059669] text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
+                    @onclick="Submit" 
+                    disabled="@(PictureLinkError != null)">
+                Create Item
+            </button>
+        </div>
+
+    </div>
+</div>
+
+@code {
+
+    private CreateMenuItemDto Model { get; set; } = new()
+    {
+        Ingredients = new List<MenuIngredientDto>(),
+        LabelIds = new List<int>()
+    };
+
+    private string? SuccessMessage;
+    private string? ErrorMessage;
+    
+    private string? PictureLinkError;
+
+    // Wrapper property so we can call validation on every input without duplicating oninput attribute
+    private string? PictureLinkBound
+    {
+        get => Model.PictureLink;
+        set
+        {
+            Model.PictureLink = value;
+            ValidatePictureLink();
+        }
+    }
+    
+    private List<MenuLabelDto> AvailableLabels = new();
+    
+    private List<IngredientListDto> AvailableIngredients = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        AvailableLabels = await MenuApi.GetLabelsAsync() ?? new();
+        AvailableIngredients = await MenuApi.GetIngredientsAsync() ?? new();
+    }
+
+    private void AddIngredient()
+        => Model.Ingredients.Add(new MenuIngredientDto());
+
+    private void RemoveIngredient(MenuIngredientDto ing)
+        => Model.Ingredients.Remove(ing);
+
+    private void OnLabelChange(ChangeEventArgs e)
+    {
+        Model.LabelIds.Clear();
+
+        var str = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(str))
+            return;
+
+        foreach (var x in str.Split(','))
+            if (int.TryParse(x, out int id))
+                Model.LabelIds.Add(id);
+    }
+
+    private void ValidatePictureLink(ChangeEventArgs? _ = null)
+    {
+        PictureLinkError = null;
+
+        var link = Model.PictureLink?.Trim();
+        if (string.IsNullOrWhiteSpace(link))
+            return; 
+
+        if (link.Length > 255)
+        {
+            PictureLinkError = "Picture URL must be 255 characters or less.";
+            return;
+        }
+
+        if (!Uri.TryCreate(link, UriKind.Absolute, out var uri))
+        {
+            PictureLinkError = "Invalid URL format.";
+            return;
+        }
+
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+        {
+            PictureLinkError = "URL must start with http:// or https://.";
+            return;
+        }
+    }
+
+    private async Task Submit()
+    {
+        SuccessMessage = ErrorMessage = null;
+        
+        ValidatePictureLink();
+        if (!string.IsNullOrEmpty(PictureLinkError))
+        {
+            ErrorMessage = PictureLinkError;
+            return;
+        }
+
+        int? id = await MenuApi.CreateMenuItemAsync(Model);
+
+        if (id == null)
+        {
+            ErrorMessage = "Failed to create menu item.";
+            return;
+        }
+
+        SuccessMessage = $"Item created (ID {id})";
+        await Task.Delay(800);
+        Nav.NavigateTo("/kitchen_staff/menu");
+    }
+
+    private void GoBack() => Nav.NavigateTo("/kitchen_staff/menu");
+}

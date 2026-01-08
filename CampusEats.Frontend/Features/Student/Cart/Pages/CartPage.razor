@@ -1,0 +1,307 @@
+﻿@page "/cart"
+@using CampusEats.Frontend.Models
+@using CampusEats.Frontend.Services
+@using CampusEats.Frontend.Services.Auth
+@using CampusEats.Frontend.Features.Student.Cart.Services
+@inject CampusEats.Frontend.Features.Student.Cart.Services.CartService Cart
+@inject OrderApi Orders
+@inject NavigationManager Nav
+@inject AuthStateService Auth
+@using CampusEats.Frontend.Features.Recommendations
+@using CampusEats.Frontend.Features.Recommendations.Models
+@inject RecommendationsApi Recommendations
+
+
+<div class="max-w-7xl mx-auto px-6 py-8 bg-gray-50 min-h-screen">
+    <div class="mb-8">
+        <h1 class="text-3xl font-semibold text-gray-900 mb-1">🛒 My Cart</h1>
+        <p class="text-gray-600 text-base">Review your order before checkout</p>
+    </div>
+
+    @if (!Cart.Cart.Items.Any())
+    {
+        <div class="text-center py-16 bg-white rounded-lg shadow-sm">
+            <span class="text-7xl block mb-4 opacity-40">🛒</span>
+            <h3 class="text-2xl font-semibold text-gray-900 mb-2">Your cart is empty</h3>
+            <p class="text-gray-600 mb-8">Add some delicious items from the menu!</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
+            <div class="flex flex-col gap-4">
+                @foreach (var item in Cart.Cart.Items)
+                {
+                    <div class="bg-white rounded-lg p-5 shadow-sm flex justify-between items-center gap-4 hover:shadow-md transition-shadow">
+                        <div class="flex-1">
+                            <h3 class="text-base font-semibold text-gray-900 mb-1">@item.Name</h3>
+                            <div class="flex items-center gap-3 mt-2">
+                                <button class="w-8 h-8 flex items-center justify-center rounded-md bg-gray-200 hover:bg-gray-300 text-gray-700"
+                                        @onclick="() => Cart.DecrementQuantity(item.MenuItemId)">
+                                    −
+                                </button>
+
+                                <span class="min-w-[32px] text-center font-medium">
+                                    @item.Quantity
+                                </span>
+
+                                <button class="w-8 h-8 flex items-center justify-center rounded-md bg-gray-200 hover:bg-gray-300 text-gray-700"
+                                        @onclick="() => Cart.IncrementQuantity(item.MenuItemId)">
+                                    +
+                                </button>
+                            </div>
+
+                        </div>
+                        <div class="flex flex-col items-end gap-3">
+                            <span class="text-lg font-semibold text-gray-900">@(item.Price * item.Quantity) RON</span>
+                            <button class="bg-red-500 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-red-600 transition-colors" @onclick="() => Cart.RemoveItem(item.MenuItemId)">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="lg:sticky lg:top-8 h-fit">
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-5 pb-4 border-b border-gray-200">Order Summary</h3>
+                    
+                    <div class="flex justify-between py-3 text-gray-700 text-sm">
+                        <span>Items (@Cart.Cart.Items.Sum(i => i.Quantity))</span>
+                        <span>@Cart.Cart.Total RON</span>
+                    </div>
+                    
+                    <div class="flex justify-between pt-3 mt-3 border-t border-gray-200 font-semibold text-base text-gray-900">
+                        <span>Total</span>
+                        <span class="text-xl text-emerald-500">@Cart.Cart.Total RON</span>
+                    </div>
+                    
+                    <div class="text-sm text-emerald-500 mt-2 font-medium">
+                        You will earn @PointsToEarn points for this order
+                    </div>
+
+                    <div class="mt-4">
+                        <label for="cart-notes" class="block text-sm font-medium text-gray-700">Add Notes (Optional)</label>
+                        <textarea id="cart-notes" name="cart-notes" rows="3" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                                  @bind="CartNotes"></textarea>
+                    </div>
+
+                    <button class="w-full bg-emerald-500 text-white py-3 rounded-md font-medium text-base mt-5 hover:bg-emerald-600 transition-colors" @onclick="PlaceOrder" disabled="@_placingOrder">
+                        @( _placingOrder ? "Placing Order..." : "Place Order")
+                    </button>
+                </div>
+            </div>
+            
+            @if (_recommendedItems != null && _recommendedItems.Any())
+            {
+                <div class="lg:col-span-2 bg-white rounded-lg p-6 shadow-sm mt-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Students also bought</h3>
+
+                    @if (_isLoadingRecommendations)
+                    {
+                        <p class="text-gray-600">Loading recommendations...</p>
+                    }
+                    else
+                    {
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            @foreach (var rec in _recommendedItems)
+                            {
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h4 class="text-base font-semibold text-gray-900">@rec.Name</h4>
+                                        <span class="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-medium">@rec.Calories cal</span>
+                                    </div>
+
+                                    <div class="flex gap-2 flex-wrap mb-3">
+                                        @foreach (var tag in rec.Labels)
+                                        {
+                                            <span class="bg-emerald-500 text-white px-2 py-1 rounded text-xs font-medium">@tag</span>
+                                        }
+                                    </div>
+
+                                    <div class="flex justify-center items-center h-32 overflow-hidden rounded-lg bg-gray-100 mb-3">
+                                        <img src='@(string.IsNullOrWhiteSpace(rec.PictureLink) ? "/images/default-menu-item.svg" : rec.PictureLink)'
+                                             alt="@rec.Name"
+                                             class="object-cover w-full h-full"
+                                             onerror="this.onerror=null;this.src='/images/default-menu-item.svg'" />
+                                    </div>
+
+                                    <div class="mt-auto">
+                                        <div class="flex justify-between items-end mb-3">
+                                            <div class="flex flex-col gap-1">
+                                                <strong class="text-xl font-semibold text-gray-900">@rec.Price RON</strong>
+                                                <small class="text-xs @(rec.CurrentStock <= 0 ? "text-red-500" : "text-emerald-500")">
+                                                    @(rec.CurrentStock <= 0 ? "Out of stock" : $"{rec.CurrentStock} available")
+                                                </small>
+                                            </div>
+                                        </div>
+
+                                        <button class="w-full text-white py-2 rounded-md font-medium text-sm transition-colors @( _addingItemIds.Contains(rec.MenuItemId) ? "bg-[#059669]" : "bg-emerald-500 hover:bg-emerald-600")"
+                                                disabled="@(rec.CurrentStock <= 0 || _addingItemIds.Contains(rec.MenuItemId))"
+                                                @onclick="() => AddRecommendedToCart(rec)">
+                                            Add to Cart
+                                        </button>
+
+                                        @if (_recommendedAddErrors.TryGetValue(rec.MenuItemId, out var errorMsg))
+                                        {
+                                            <p class="text-red-500 text-xs mt-2">@errorMsg</p>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @if (_showAddedConfirmation)
+    {
+        <div class="fixed bottom-4 right-4 bg-emerald-500 text-white text-sm rounded-lg py-2 px-4 shadow-md">
+            @* Show a brief confirmation message *@
+            @* Add some margin to avoid overlap with the edge of the screen *@
+            Item "@_addedItemName" added to cart!
+        </div>
+    }
+</div>
+
+@code {
+
+    private async Task PlaceOrder()
+    {
+        var req = new CreateOrderRequest
+        {
+            StudentId = Auth.UserId,
+            Items = Cart.Cart.Items
+                .Select(i => new CreateOrderItem
+                {
+                    MenuItemId = i.MenuItemId,
+                    Quantity = i.Quantity
+                }).ToList(),
+            Notes = CartNotes 
+        };
+
+        _placingOrder = true;
+
+        var orderId = await Orders.CreateOrder(req);
+
+        _placingOrder = false;
+
+        if (orderId != null)
+        {
+            Cart.Clear();
+            Nav.NavigateTo("/orders");
+        }
+    }
+
+    private Action? _cartChangedAction;
+    private int PointsToEarn => (int)Math.Floor(Cart.Cart.Total * 0.1m);
+
+    private List<FullRecommendedItemDto>? _recommendedItems;
+    private bool _isLoadingRecommendations;
+
+    private readonly HashSet<int> _addingItemIds = new();
+    private bool _showAddedConfirmation;
+    private string? _addedItemName;
+    private bool _placingOrder;
+
+    private string? CartNotes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cartChangedAction = () => _ = HandleCartChanged();
+        Cart.OnChange += _cartChangedAction;
+        await LoadRecommendations();
+    }
+
+    public void Dispose()
+    {
+        if (_cartChangedAction != null)
+            Cart.OnChange -= _cartChangedAction;
+    }
+
+    private async Task HandleCartChanged()
+    {
+        await LoadRecommendations();
+        StateHasChanged();
+    }
+
+    private async Task LoadRecommendations()
+    {
+        if (!Cart.Cart.Items.Any())
+        {
+            _recommendedItems = new();
+            return;
+        }
+
+        _isLoadingRecommendations = true;
+
+        var ids = Cart.Cart.Items.Select(i => i.MenuItemId).ToList();
+        _recommendedItems = await Recommendations.GetCartRecommendationsAsync(ids, 3);
+
+        _isLoadingRecommendations = false;
+    }
+
+    private readonly Dictionary<int, string> _recommendedAddErrors = new();
+
+    private void AddRecommendedToCart(FullRecommendedItemDto rec)
+    {
+        _ = AddRecommendedToCartAsync(rec);
+    }
+
+    private async Task AddRecommendedToCartAsync(FullRecommendedItemDto rec)
+    {
+        // clear any previous error for this item
+        _recommendedAddErrors.Remove(rec.MenuItemId);
+
+        // Mark as adding to disable the button for this item
+        _addingItemIds.Add(rec.MenuItemId);
+        StateHasChanged();
+
+        var (success, error) = await Cart.TryAddItemAsync(rec.MenuItemId, rec.Name, rec.Price);
+
+        // Remove adding state
+        _addingItemIds.Remove(rec.MenuItemId);
+
+        if (!success)
+        {
+            _recommendedAddErrors[rec.MenuItemId] = MapAddToCartError(error);
+            StateHasChanged();
+            return;
+        }
+
+        // On success, ensure no lingering error
+        _recommendedAddErrors.Remove(rec.MenuItemId);
+
+        // Show a brief confirmation message
+        _addedItemName = rec.Name;
+        _showAddedConfirmation = true;
+        StateHasChanged();
+
+        // Hide the confirmation after a short delay
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(1800);
+            _showAddedConfirmation = false;
+            _addedItemName = null;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private static string MapAddToCartError(string? error)
+    {
+        if (string.IsNullOrWhiteSpace(error))
+            return "The product could not be added to the cart.";
+
+        if (error.Contains("Out of stock.", StringComparison.OrdinalIgnoreCase) ||
+            error.Contains("stock", StringComparison.OrdinalIgnoreCase) ||
+            error.Contains("Out of stock", StringComparison.OrdinalIgnoreCase))
+        {
+            return "You have already reached the maximum quantity available for this product.";
+        }
+
+        return error;
+    }
+
+}

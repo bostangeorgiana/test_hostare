@@ -1,0 +1,82 @@
+﻿.payment-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #e5e7eb;
+}
+
+.pay-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #065f46;
+    margin-bottom: 1rem;
+}
+
+/* spinner */
+.pay-loading {
+    text-align: center;
+    color: #6b7280;
+}
+
+/* pay button */
+.pay-btn {
+    width: 100%;
+    background: #059669;
+    color: white;
+    padding: 0.875rem;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 0.75rem;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.pay-btn:hover {
+    background: #047857;
+    transform: translateY(-2px);
+}
+
+.payment-result {
+    padding: 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.pay-error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.cancel-order-btn {
+    width: 100%;
+    background: #fee2e2;
+    color: #dc2626;
+    border: 2px solid #dc2626;
+    padding: 0.875rem;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cancel-order-btn:hover {
+    background: #dc2626;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.spinner {
+    border: 4px solid #e5e7eb;
+    border-top: 4px solid #059669;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

@@ -1,0 +1,19 @@
+﻿<div class="fail-container">
+    <div class="fail-icon">✖</div>
+
+    <h3>Payment Failed</h3>
+
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <p class="fail-reason-label">Reason:</p>
+        <p class="fail-reason">@Message</p>
+    }
+    else
+    {
+        <p class="fail-reason">An unknown error occurred.</p>
+    }
+</div>
+
+@code {
+    [Parameter] public string Message { get; set; } = "Payment failed. Please try again.";
+}

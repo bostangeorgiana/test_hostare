@@ -1,0 +1,55 @@
+﻿@using CampusEats.Frontend.Features.Admin.Models
+@using CampusEats.Frontend.Models
+
+@if (Show)
+{
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded shadow-lg w-96">
+
+            <h2 class="text-xl font-bold mb-4">Create Admin</h2>
+
+            <div class="space-y-3">
+
+                <input class="border p-2 w-full" placeholder="First Name"
+                       @bind="Model.FirstName" />
+
+                <input class="border p-2 w-full" placeholder="Last Name"
+                       @bind="Model.LastName" />
+
+                <input class="border p-2 w-full" placeholder="Email"
+                       @bind="Model.Email" />
+
+                <input class="border p-2 w-full" placeholder="Password"
+                       type="password" @bind="Model.Password" />
+            </div>
+
+            <div class="flex justify-end gap-3 mt-4">
+                <button class="px-3 py-1 bg-gray-300 rounded"
+                        @onclick="Close">
+                    Cancel
+                </button>
+
+                <button class="px-3 py-1 bg-green-600 text-white rounded"
+                        @onclick="Save">
+                    Create
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public EventCallback<CreateAdminRequest> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    CreateAdminRequest Model = new();
+
+    void Close() => OnClose.InvokeAsync();
+
+    async Task Save()
+    {
+        await OnSubmit.InvokeAsync(Model);
+        Model = new(); // reset
+    }
+}

@@ -1,0 +1,30 @@
+﻿@inherits LayoutComponentBase
+
+<div class="ce-layout">
+    <div class="ce-sidebar">
+        <NavMenu />
+    </div>
+
+    <main class="ce-main">
+        @Body
+    </main>
+</div>
+
+<style>
+    .ce-layout {
+        display: flex;
+        min-height: 100vh;
+        width: 100%;
+        background: #f9fafb;
+    }
+    
+    .ce-sidebar {
+        flex-shrink: 0;
+    }
+
+    .ce-main {
+        flex: 1;
+        padding: 2rem;
+        background: #f9fafb;
+    }
+</style>

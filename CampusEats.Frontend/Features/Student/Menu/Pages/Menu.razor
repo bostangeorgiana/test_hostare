@@ -1,0 +1,307 @@
+﻿@page "/student/menu"
+@layout MainLayout
+
+@using CampusEats.Frontend.Features.Student.Menu.Components
+@using CampusEats.Frontend.Features.Menu.Models
+@using CampusEats.Frontend.Features.Menu.Services
+@using CampusEats.Frontend.Services
+@using CampusEats.Frontend.Services.Auth
+@using CampusEats.Frontend.Features.Student.Cart.Services
+
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+@inject CampusEats.Frontend.Features.Menu.Services.MenuApi MenuApi
+@inject CampusEats.Frontend.Features.Student.Cart.Services.CartService Cart
+@inject CampusEats.Frontend.Services.Auth.AuthStateService Auth
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+
+<style>
+    .add-to-cart-button {
+        transition: none;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        background-color: #10b981;
+        color: white; 
+    }
+
+    .add-to-cart-button:hover {
+        background-color: #10b981 !important;
+        opacity: 1 !important; 
+        visibility: visible !important; 
+        transform: none !important; 
+        color: white !important; 
+    }
+</style>
+
+<div class="max-w-7xl mx-auto p-8">
+
+    <!-- Title section -->
+    <div class="mb-5 text-left">
+        <h1 class="text-3xl font-bold text-gray-800">🍽 Today's Menu</h1>
+        <p class="text-gray-500 mt-1">Browse delicious meals prepared today</p>
+    </div>
+
+    <!-- FILTER PANEL -->
+    <MenuFilters
+        OnlyAvailable="OnlyAvailable"
+        OnlyAvailableChanged="@(v => OnlyAvailable = v)"
+
+        OnlyFavorites="OnlyFavorites"
+        OnlyFavoritesChanged="@(v => OnlyFavorites = v)"
+
+        AvailableLabels="AvailableLabels"
+        SelectedLabelIds="SelectedLabelIds"
+        SelectedLabelIdsChanged="@(ids => SelectedLabelIds = ids)"
+
+        MinPrice="@(MinPrice ?? 0m)"
+        MinPriceChanged="@((decimal? v) => MinPrice = v)"
+        MaxPrice="@(MaxPrice ?? 1000m)"
+        MaxPriceChanged="@((decimal? v) => MaxPrice = v)"
+
+        SortOption="SortOption"
+        SortOptionChanged="@(v => SortOption = v)"
+
+        OnApplyFilters="ApplyFilters"
+    />
+
+    @if (MenuItems == null)
+    {
+        <div class="flex flex-col items-center justify-center py-20">
+            <div class="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+            <p class="mt-4 text-gray-600">Loading menu...</p>
+        </div>
+    }
+    else if (!FilteredMenu.Any())
+    {
+        <div class="flex flex-col items-center justify-center py-20">
+            <span class="text-6xl mb-4">🍽️</span>
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">No items available</h3>
+            <p class="text-gray-500">Try adjusting your filters or check back later.</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @foreach (var item in FilteredMenu)
+            {
+                <div class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col gap-4">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-xl font-semibold text-gray-800">@item.Name</h3>
+                        <span class="bg-[#d1fae5] text-[#10b981] px-3 py-1 rounded-full text-sm font-medium">@item.Calories cal</span>
+                    </div>
+
+                    <div class="flex gap-2 flex-wrap">
+                        @foreach (var tag in item.Labels)
+                        {
+                            <span class="bg-[#10b981] text-white px-3 py-1 rounded-md text-xs font-medium">@tag</span>
+                        }
+                    </div>
+
+                    <div class="flex justify-center items-center h-44 overflow-hidden rounded-lg bg-gray-100">
+                        <img src='@(string.IsNullOrWhiteSpace(item.PictureLink) ? "/images/default-menu-item.svg" : item.PictureLink)' 
+                             alt="@item.Name" 
+                             class="object-cover"
+                             onerror="this.onerror=null;this.src='/images/default-menu-item.svg'" />
+                    </div>
+
+                    <div class="flex justify-between items-end border-t border-gray-200 pt-4 mt-auto">
+                        <div class="flex flex-col gap-1">
+                            <strong class="text-2xl text-gray-800 font-bold">@item.Price RON</strong>
+                            <small class="text-sm @( !item.IsAvailable || item.CurrentStock <= 0 ? "text-red-600" : "text-[#10b981]")">
+                                @(!item.IsAvailable ? "Product unavailable" : (item.CurrentStock <= 0 ? "Out of stock" : $"{item.CurrentStock} available"))
+                            </small>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button class="@( (!item.IsAvailable || item.CurrentStock <= 0) ? "bg-gray-300 cursor-not-allowed text-white" : (_addingItemIds.Contains(item.MenuItemId) ? "bg-[#059669] text-white" : "bg-[#10b981] text-white add-to-cart-button") ) px-5 py-2.5 rounded-lg font-semibold"
+                                    disabled="@(!item.IsAvailable || item.CurrentStock <= 0 || _addingItemIds.Contains(item.MenuItemId))"
+                                    @onclick="() => AddToCartAsync(item)">
+                                Add to Cart
+                            </button>
+
+                            <button class="@(item.IsFavorite ? "bg-red-600 hover:bg-red-700" : "bg-[#10b981] hover:bg-[#059669]") text-white px-3.5 py-2.5 rounded-lg text-xl transition-all hover:-translate-y-0.5"
+                                    @onclick="() => ToggleFavorite(item)">
+                                @(item.IsFavorite ? "♥" : "♡")
+                            </button>
+                        </div>
+                    </div>
+
+                    @* Inline per-item add-to-cart error *@
+                    @if (_addToCartErrors.TryGetValue(item.MenuItemId, out var addErr))
+                    {
+                        <div class="mt-2">
+                            <p class="text-red-600 text-sm">@addErr</p>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    
+    @if (!string.IsNullOrEmpty(AddToCartError))
+    {
+        <div class="max-w-7xl mx-auto p-4">
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                @AddToCartError
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<MenuItemDto>? MenuItems;
+    private List<MenuItemDto> FilteredMenu = new();
+    
+    private bool OnlyAvailable = true;
+    private bool OnlyFavorites = false;
+
+    private List<int> SelectedLabelIds = new();
+    private List<MenuLabelDto> AvailableLabels = new();
+
+    private decimal? MinPrice = null;
+    private decimal? MaxPrice = null;
+
+    private string SortOption = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Auth.Role))
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                int userId = int.Parse(user.FindFirst(c => c.Type == "nameid")?.Value ?? "0");
+                string role = user.FindFirst(c => c.Type == "role")?.Value ?? "";
+                string email = user.FindFirst(c => c.Type == "email")?.Value ?? "";
+                Auth.SetUser(userId, role, email);
+            }
+        }
+
+        if (Auth.Role != "student")
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        AvailableLabels = await MenuApi.GetLabelsAsync() ?? new List<MenuLabelDto>();
+
+        await LoadMenu();
+
+        ApplyLocalFilters();
+
+        Cart.OnChange += StateHasChanged;
+    }
+
+    private async Task LoadMenu()
+    {
+        MenuItems = await MenuApi.GetMenuAsync(
+            onlyAvailable: OnlyAvailable,
+            labels: SelectedLabelIds,
+            onlyFavorites: OnlyFavorites,
+            minPrice: MinPrice,
+            maxPrice: MaxPrice
+        );
+    }
+
+
+    private void ApplyLocalFilters()
+    {
+        if (MenuItems == null)
+        {
+            FilteredMenu = new();
+            return;
+        }
+
+        IEnumerable<MenuItemDto> result = MenuItems;
+
+        if (OnlyFavorites)
+            result = result.Where(m => m.IsFavorite);
+
+        // apply nullable price bounds (null = no bound)
+        var min = MinPrice ?? decimal.MinValue;
+        var max = MaxPrice ?? decimal.MaxValue;
+
+        result = result.Where(m => m.Price >= min && m.Price <= max);
+
+        result = SortOption switch
+        {
+            "price-asc" => result.OrderBy(m => m.Price),
+            "price-desc" => result.OrderByDescending(m => m.Price),
+            _ => result
+        };
+
+        FilteredMenu = result.ToList();
+    }
+
+    private async Task ApplyFilters()
+    {
+        await LoadMenu();
+        ApplyLocalFilters();
+        StateHasChanged();
+    }
+
+    private async Task ToggleFavorite(MenuItemDto item)
+    {
+        await MenuApi.ToggleFavoriteAsync(item.MenuItemId, Auth.UserId);
+
+        item.IsFavorite = !item.IsFavorite;
+
+        ApplyLocalFilters();
+        StateHasChanged();
+    }
+
+    private string? AddToCartError;
+
+    // per-item add-to-cart state/errors
+    private readonly HashSet<int> _addingItemIds = new();
+    private readonly Dictionary<int, string> _addToCartErrors = new();
+
+    private async Task AddToCartAsync(MenuItemDto item)
+    {
+        // clear any previous page-level error and per-item error
+        AddToCartError = null;
+        _addToCartErrors.Remove(item.MenuItemId);
+
+        // mark this item as adding to change button color and disable it
+        _addingItemIds.Add(item.MenuItemId);
+        StateHasChanged();
+
+        var (success, error) = await Cart.TryAddItemAsync(item);
+
+        if (!success)
+        {
+            // remove adding state immediately on failure so button returns to normal
+            _addingItemIds.Remove(item.MenuItemId);
+
+            var friendly = MapAddToCartError(error);
+            // show the error inline for this specific item (e.g., stock exceeded)
+            _addToCartErrors[item.MenuItemId] = friendly;
+            StateHasChanged();
+            return;
+        }
+
+       
+        await Task.Delay(200); 
+        _addingItemIds.Remove(item.MenuItemId);
+        
+        _addToCartErrors.Remove(item.MenuItemId);
+        StateHasChanged();
+    }
+
+    private static string MapAddToCartError(string? error)
+    {
+        if (string.IsNullOrWhiteSpace(error))
+            return "The product could not be added to the cart.";
+
+        if (error.Contains("Out of stock", StringComparison.OrdinalIgnoreCase) ||
+            error.Contains("stoc", StringComparison.OrdinalIgnoreCase) ||
+            error.Contains("Out of stock", StringComparison.OrdinalIgnoreCase))
+        {
+            return "You have reached the maximum available quantity for this product.";
+        }
+
+        return error;
+    }
+}

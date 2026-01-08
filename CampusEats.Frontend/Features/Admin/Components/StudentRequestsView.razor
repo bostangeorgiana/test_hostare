@@ -1,0 +1,72 @@
+﻿@using CampusEats.Frontend.Features.Admin.Models
+@using CampusEats.Frontend.Models
+
+<div class="space-y-4">
+    @if (Requests == null || !Requests.Any())
+    {
+        <p class="text-gray-500 text-center py-8">No pending student requests</p>
+    }
+    else
+    {
+        @foreach (var request in Requests)
+        {
+            <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            @request.FirstName @request.LastName
+                        </h3>
+                        <p class="text-gray-600">@request.Email</p>
+                        <p class="text-sm text-gray-500 mt-1">Status: Pending</p>
+                    </div>
+                    <button class="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 font-medium transition-colors"
+                            @onclick="@(() => OpenModal(request))">
+                        Manage Request
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<StudentRequestModal 
+    Show="@showModal"
+    Request="@selectedRequest"
+    OnApprove="HandleApprove"
+    OnReject="HandleReject"
+    OnClose="CloseModal" />
+
+@code {
+    [Parameter] public List<StudentRequest> Requests { get; set; } = new();
+    [Parameter] public EventCallback<int> Approve { get; set; }
+    [Parameter] public EventCallback<int> Reject { get; set; }
+
+    bool showModal = false;
+    StudentRequest? selectedRequest = null;
+
+    void OpenModal(StudentRequest request)
+    {
+        selectedRequest = request;
+        showModal = true;
+        StateHasChanged(); 
+    }
+
+    void CloseModal()
+    {
+        showModal = false;
+        selectedRequest = null;
+        StateHasChanged();
+    }
+
+    async Task HandleApprove(int id)
+    {
+        await Approve.InvokeAsync(id);
+        CloseModal();
+    }
+
+    async Task HandleReject(int id)
+    {
+        await Reject.InvokeAsync(id);
+        CloseModal();
+    }
+}

@@ -1,0 +1,11 @@
+﻿<div class="success-container">
+    <div class="success-icon">✔</div>
+    <h3>Payment Successful</h3>
+    <p>You paid <strong>@Amount.ToString("0.00") RON</strong></p>
+    <p>@Message</p>
+</div>
+
+@code {
+    [Parameter] public string Message { get; set; } = "Your payment was processed successfully.";
+    [Parameter] public decimal Amount { get; set; }
+}

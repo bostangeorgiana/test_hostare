@@ -1,0 +1,194 @@
+﻿@using CampusEats.Frontend.Features.Payment.Models
+@using CampusEats.Frontend.Features.Payment.Services
+
+@inject PaymentService Payment
+
+<div class="payment-section">
+    <div class="loyalty-box">
+        <div class="points-info">
+            <span class="points-label">Available points:</span>
+            <span class="points-value">@AvailablePoints</span>
+        </div>
+
+        <div class="points-input-group">
+            <label for="pointsInput">Redeem points:</label>
+            <input id="pointsInput"
+                   type="number"
+                   min="0"
+                   max="@AvailablePoints"
+                   value="@PointsToUse"
+                   @onchange="ValidatePoints"
+                   placeholder="0" />
+        </div>
+
+        <div class="final-amount">
+            <span>Final amount:</span>
+            <strong>@(Math.Max(0, Amount - PointsToUse)) RON</strong>
+        </div>
+    </div>
+
+    <h3 class="pay-title">Payment</h3>
+
+    <Popup IsOpen="@(ShowModal && Result != null)" OnClose="CloseModal">
+        @if (Result?.Success == true)
+        {
+            <StripeSuccess
+                Message="@Result.Message"
+                Amount="@Result.Amount"/>
+        }
+        else if (Result?.Success == false)
+        {
+            <StripeFail Message="@(Result?.Message ?? "Unknown error")"/>
+        }
+    </Popup>
+
+    @if (IsPaying)
+    {
+        <div class="pay-loading">
+            <div class="spinner"></div>
+            <p>Processing payment...</p>
+        </div>
+    }
+    else
+    {
+        <button class="pay-btn" @onclick="Pay">
+            💳 Pay with Card
+        </button>
+    }
+
+    <button class="cancel-order-btn" @onclick="CancelClicked">
+        Cancel Order
+    </button>
+</div>
+
+@code {
+    [Parameter] public int OrderId { get; set; }
+    [Parameter] public decimal Amount { get; set; }
+    [Parameter] public EventCallback OnPaymentCompleted { get; set; }
+    [Parameter] public EventCallback OnOrderCancelled { get; set; }
+    [Parameter] public int AvailablePoints { get; set; }
+    [Parameter] public int PointsToUse { get; set; }
+
+
+    private bool IsPaying = false;
+    private bool ShowModal = false;
+
+    private PaymentResponse? Result;
+
+    private async Task Pay()
+    {
+        IsPaying = true;
+        Result = null;
+        StateHasChanged();
+
+        var request = new PaymentRequest
+        {
+            OrderId = OrderId,
+            PaymentMethodId = "pm_card_visa",
+            PointsToRedeem = PointsToUse
+        };
+
+        Result = await Payment.PayAsync(request);
+    
+        ShowModal = Result != null;
+
+        IsPaying = false;
+        StateHasChanged();
+    }
+
+
+    private async Task CancelClicked()
+    {
+        await OnOrderCancelled.InvokeAsync();
+    }
+
+    private async Task CloseModal()
+    {
+        ShowModal = false;
+
+        if (Result?.Success == true)
+            await OnPaymentCompleted.InvokeAsync();
+
+        StateHasChanged();
+    }
+    
+    void ValidatePoints(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int value))
+        {
+            PointsToUse = value > AvailablePoints ? AvailablePoints : (value < 0 ? 0 : value);
+        }
+    }
+
+}
+
+<style>
+    .loyalty-box {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    }
+    
+    .points-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    }
+    
+    .points-label {
+    color: #666;
+    font-size: 14px;
+    }
+    
+    .points-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: #059669;
+    }
+    
+    .points-input-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    }
+    
+    .points-input-group label {
+    font-size: 14px;
+    color: #333;
+    min-width: 110px;
+    }
+    
+    .points-input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    }
+    
+    .points-input-group input:focus {
+    outline: none;
+    border-color: #d1fae5;
+    }
+    
+    .final-amount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e0;
+    }
+    
+    .final-amount span {
+    color: #666;
+    }
+    
+    .final-amount strong {
+    font-size: 18px;
+    color: #059669;
+    }
+</style>

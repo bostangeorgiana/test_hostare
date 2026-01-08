@@ -1,0 +1,59 @@
+﻿@page "/"
+@layout EmptyLayout
+@inject NavigationManager Nav
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+    body, * {
+        font-family: 'Poppins', sans-serif;
+    }
+</style>
+
+<div class="relative w-full h-screen">
+
+    <!-- Background Image -->
+    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/images/home.jpg');"></div>
+
+    <!-- Overlay mai transparent -->
+    <div class="absolute inset-0 bg-black/50"></div>
+
+    <!-- Content -->
+    <div class="relative z-10 flex flex-col items-center justify-center h-full text-center text-white px-4">
+        
+        <h1 class="text-5xl font-bold mb-4 drop-shadow-lg">
+            CampusEats
+        </h1>
+
+        <p class="text-xl text-gray-200 mb-10 drop-shadow max-w-xl">
+            Your modern campus food companion — fast, simple, convenient.
+        </p>
+
+        <div class="flex gap-6">
+            <button class="px-8 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg text-lg font-medium transition shadow-lg border border-white/30"
+                    @onclick="NavigateToLogin">
+                Login
+            </button>
+
+            <button 
+                class="px-8 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg text-lg font-medium transition shadow-lg border border-white/30"
+                @onclick="NavigateToRegister">
+                Register
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+    private void NavigateToLogin()
+    {
+        Nav.NavigateTo("/auth/login");
+    }
+
+    private void NavigateToRegister()
+    {
+        Nav.NavigateTo("/auth/register");
+    }
+}

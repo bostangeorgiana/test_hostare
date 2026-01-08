@@ -1,0 +1,90 @@
+﻿@page "/profile"
+@using CampusEats.Frontend.Models
+@using CampusEats.Frontend.Features.Users.Services
+@using CampusEats.Frontend.Services.Auth
+
+@inject UserApi UserApi
+@inject AuthStateService Auth
+@inject NavigationManager Nav
+
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title">👤 My Profile</h1>
+        <p class="page-subtitle">Manage your account information</p>
+    </div>
+
+    @if (_profile == null && _isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Loading profile...</p>
+        </div>
+    }
+    else if (_profile == null)
+    {
+        <div class="empty-state">
+            <h3>No profile found</h3>
+            <p>We couldn't find your profile information.</p>
+        </div>
+    }
+    else
+    {
+        <div class="profile-card">
+            <div class="profile-top">
+                <h2>@(_profile.FirstName) @(_profile.LastName)</h2>
+                <span class="role-badge">@_profile.Role.ToUpper()</span>
+            </div>
+
+            <div class="profile-row">
+                <span class="label">Email</span>
+                <span class="value">@_profile.Email</span>
+            </div>
+
+            <div class="profile-row">
+                <span class="label">Loyalty Points</span>
+                <span class="value">@(_profile.LoyaltyPoints?.ToString() ?? "—")</span>
+            </div>
+        </div>
+    }
+
+ 
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private UserProfileDto? _profile;
+    private bool _isLoggedIn = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _isLoggedIn = Auth.UserId > 0;
+            if (_isLoggedIn)
+            {
+                _profile = await UserApi.GetProfileById(Auth.UserId);
+            }
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+}
+
+<style>
+    .page-container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .page-header { margin-bottom: 2rem; }
+    .page-title { font-size: 2rem; font-weight: 700; color: #065f46; margin-bottom: 0.5rem; }
+    .page-subtitle { color: #6b7280; font-size: 1rem; }
+
+    .profile-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .profile-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+    .profile-top h2 { margin:0; color:#065f46; }
+    .role-badge { background:#dbeafe; color:#1e40af; padding:0.25rem 0.75rem; border-radius:999px; font-weight:700; }
+    .profile-row { display:flex; justify-content:space-between; padding:0.75rem 0; border-top:1px solid #eef2f7; }
+    .label { color:#6b7280; }
+    .value { font-weight:700; color:#111827; }
+</style>

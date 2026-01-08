@@ -1,0 +1,43 @@
+﻿.popup-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease-in-out;
+}
+
+.popup-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.popup-content {
+    background: #ffffff;
+    padding: 2rem;
+    width: 360px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    position: relative;
+    animation: popup-scale .25s ease-out;
+}
+
+@keyframes popup-scale {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.popup-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: #444;
+}

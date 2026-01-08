@@ -1,0 +1,35 @@
+﻿.fail-container {
+    text-align: center;
+    padding: 1.2rem;
+}
+
+.fail-icon {
+    background: #dc2626; /* red */
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 2rem;
+    margin: 0 auto 1rem;
+    animation: pop 0.25s ease-out;
+}
+
+.fail-reason-label {
+    font-weight: 600;
+    margin-top: 0.5rem;
+    color: #7f1d1d;
+}
+
+.fail-reason {
+    color: #991b1b;
+    margin-top: .25rem;
+    white-space: pre-line;
+}
+
+@keyframes pop {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}

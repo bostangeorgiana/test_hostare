@@ -1,0 +1,17 @@
+﻿<div class="popup-backdrop @(IsOpen ? "show" : "hide")">
+    <div class="popup-content">
+        <button class="popup-close" @onclick="Close">×</button>
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+}

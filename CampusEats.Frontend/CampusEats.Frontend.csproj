@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.11" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.9" />
+    <PackageReference Include="Stripe.net" Version="50.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Features\Payment\Pages\Checkout.razor" />
+    <_ContentIncludedByDefault Remove="Features\Payment\Pages\PaymentSuccess.razor" />
+    <_ContentIncludedByDefault Remove="Components\Stripe\StripeSuccess.razor" />
+    <_ContentIncludedByDefault Remove="Components\UI\Button.razor" />
+    <_ContentIncludedByDefault Remove="Components\UI\Card.razor" />
+    <_ContentIncludedByDefault Remove="Components\UI\ConfirmDialog.razor" />
+    <_ContentIncludedByDefault Remove="Components\UI\Modal.razor" />
+    <_ContentIncludedByDefault Remove="Features\Student\Pages\CartPage.razor" />
+    <_ContentIncludedByDefault Remove="Features\Student\Menu\Pages\Menu.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Shared\Popup.razor.css">
+      <DependentUpon>Popup.razor</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Features\Student\Cart\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Features\Student\Cart\Pages\CartPage.razor" />
+  </ItemGroup>
+
+</Project>

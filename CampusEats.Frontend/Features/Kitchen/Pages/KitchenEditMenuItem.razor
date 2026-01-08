@@ -1,0 +1,152 @@
+﻿@page "/kitchen_staff/edit/{Id:int}"
+@layout MainLayout
+@using CampusEats.Frontend.Features.Menu.Models
+@using CampusEats.Frontend.Features.Menu.Services
+@using CampusEats.Frontend.Services.Auth
+
+@inject MenuApi MenuApi
+@inject NavigationManager Nav
+@inject AuthStateService Auth
+
+<div class="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
+
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">✏️ Edit Menu Item</h1>
+        <p class="text-base text-gray-600">Update menu item details</p>
+    </div>
+
+    @if (ErrorMessage != null)
+    {
+        <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p class="text-sm font-medium text-red-800">@ErrorMessage</p>
+        </div>
+    }
+
+    @if (SuccessMessage != null)
+    {
+        <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+            <p class="text-sm font-medium text-emerald-800">@SuccessMessage</p>
+        </div>
+    }
+
+    @if (Item == null)
+    {
+        <div class="flex flex-col justify-center items-center min-h-96">
+            <div class="w-12 h-12 border-4 border-gray-300 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+            <p class="text-gray-600 font-medium">Loading item...</p>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white rounded-2xl border border-gray-200 p-8">
+
+            <!-- NAME -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-900 mb-2">Name</label>
+                <input class="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                       @bind="Item.Name" />
+            </div>
+
+            <!-- DESCRIPTION -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-900 mb-2">Description</label>
+                <textarea class="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none" 
+                          rows="3" 
+                          @bind="Item.Description"></textarea>
+            </div>
+
+            <!-- PRICE / CALORIES / STOCK -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Price (RON)</label>
+                    <input type="number" 
+                           step="0.01" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                           @bind="Item.Price" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Calories</label>
+                    <input type="number" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                           @bind="Item.Calories" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Stock</label>
+                    <input type="number" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                           @bind="Item.CurrentStock" />
+                </div>
+            </div>
+
+            <!-- AVAILABLE -->
+            <div class="mb-8">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" 
+                           class="w-5 h-5 text-emerald-600 border-gray-300 rounded focus:ring-2 focus:ring-emerald-500" 
+                           @bind="Item.IsAvailable" />
+                    <span class="text-sm font-semibold text-gray-900">Available</span>
+                </label>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="flex gap-4">
+                <button class="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-xl transition-colors" 
+                        @onclick="GoBack">
+                    Cancel
+                </button>
+                <button class="flex-1 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors" 
+                        @onclick="SaveChanges">
+                    Save Changes
+                </button>
+            </div>
+
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private MenuItemDto? Item;
+    private string? ErrorMessage;
+    private string? SuccessMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Auth.Role != "kitchen_staff")
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        try
+        {
+            Item = await MenuApi.GetMenuItemAsync(Id);
+        }
+        catch
+        {
+            ErrorMessage = "Failed to load menu item.";
+        }
+    }
+
+    private async Task SaveChanges()
+    {
+        ErrorMessage = SuccessMessage = null;
+
+        try
+        {
+            await MenuApi.UpdateMenuItemAsync(Item!);
+            SuccessMessage = "Item updated successfully!";
+            await Task.Delay(800);
+            Nav.NavigateTo("/kitchen_staff/menu");
+        }
+        catch
+        {
+            ErrorMessage = "Failed to save changes.";
+        }
+    }
+
+    private void GoBack() => Nav.NavigateTo("/kitchen_staff/menu");
+}

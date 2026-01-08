@@ -1,0 +1,23 @@
+﻿.success-container {
+    text-align: center;
+    padding: 1rem;
+}
+
+.success-icon {
+    background: #059669;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 2rem;
+    margin: 0 auto 1rem;
+    animation: pop 0.3s ease-out;
+}
+
+@keyframes pop {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}

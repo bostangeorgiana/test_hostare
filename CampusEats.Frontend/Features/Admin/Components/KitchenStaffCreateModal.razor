@@ -1,0 +1,57 @@
+﻿@using CampusEats.Frontend.Features.Admin.Models
+@using CampusEats.Frontend.Models
+
+@if (Show)
+{
+    <div class="fixed inset-0 bg-white bg-opacity-70 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl border border-gray-200 w-96">
+
+            <h2 class="text-xl font-semibold mb-4">Add Kitchen Staff</h2>
+
+            <input class="border border-gray-300 p-2 mb-2 w-full rounded" 
+                   placeholder="First Name"
+                   @bind="model.FirstName" />
+
+            <input class="border border-gray-300 p-2 mb-2 w-full rounded" 
+                   placeholder="Last Name"
+                   @bind="model.LastName" />
+
+            <input class="border border-gray-300 p-2 mb-2 w-full rounded" 
+                   placeholder="Email"
+                   type="email"
+                   @bind="model.Email" />
+
+            <input class="border border-gray-300 p-2 mb-4 w-full rounded" 
+                   placeholder="Password"
+                   type="password"
+                   @bind="model.Password" />
+
+            <div class="flex justify-end gap-3">
+                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
+                        @onclick="OnClose">
+                    Cancel
+                </button>
+
+                <button class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
+                        @onclick="Submit">
+                    Create
+                </button>
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public EventCallback<CreateKitchenStaffRequest> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    CreateKitchenStaffRequest model = new();
+
+    async Task Submit() 
+    {
+        await OnSubmit.InvokeAsync(model);
+        model = new();
+    }
+}
